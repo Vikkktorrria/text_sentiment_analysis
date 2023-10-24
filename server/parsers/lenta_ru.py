@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import datetime
 import requests
 from bs4 import BeautifulSoup as bs
-from . import consts
+import server.parsers.consts as consts
 
 
 def get_data():
