@@ -1,0 +1,453 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 13.4
+-- Dumped by pg_dump version 13.4
+
+-- Started on 2023-11-26 20:52:35
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 212 (class 1255 OID 32990)
+-- Name: array_intersect(text[], text[]); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.array_intersect(array1 text[], array2 text[]) RETURNS text[]
+    LANGUAGE sql
+    AS $_$
+SELECT ARRAY(
+        SELECT UNNEST($1)
+        INTERSECT
+        SELECT UNNEST($2)
+    );
+$_$;
+
+
+ALTER FUNCTION public.array_intersect(array1 text[], array2 text[]) OWNER TO postgres;
+
+--
+-- TOC entry 3043 (class 0 OID 0)
+-- Dependencies: 212
+-- Name: FUNCTION array_intersect(array1 text[], array2 text[]); Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON FUNCTION public.array_intersect(array1 text[], array2 text[]) IS 'Пересечение массивов';
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 209 (class 1259 OID 33050)
+-- Name: Company; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Company" (
+    "@Company" integer NOT NULL,
+    "Name" text NOT NULL,
+    "NameVariants" text[]
+);
+
+
+ALTER TABLE public."Company" OWNER TO postgres;
+
+--
+-- TOC entry 3044 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: TABLE "Company"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public."Company" IS 'Компания
+@Company - ПК
+Name - название компании
+NameVariants - варианты имени компании (на англ, например)';
+
+
+--
+-- TOC entry 210 (class 1259 OID 33058)
+-- Name: Company_@Company_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public."Company" ALTER COLUMN "@Company" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public."Company_@Company_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 201 (class 1259 OID 32938)
+-- Name: ParsedNews; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ParsedNews" (
+    "@ParsedNews" integer NOT NULL,
+    "Header" text,
+    "Text" text NOT NULL,
+    "CreateTime" timestamp with time zone NOT NULL,
+    "IsProcessed" boolean NOT NULL,
+    "SourceId" integer
+);
+
+
+ALTER TABLE public."ParsedNews" OWNER TO postgres;
+
+--
+-- TOC entry 3045 (class 0 OID 0)
+-- Dependencies: 201
+-- Name: TABLE "ParsedNews"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public."ParsedNews" IS 'Таблица, содержащая новости, полученные в ходе парсинга новостных ресурсов
+@ParsedNews - ПК
+Header - заголовок новости
+Text - текст новости
+CreateTime - дата и время создания новости (в БД)
+IsProcessed - новость обработана (нужно для проверки новых импортируемых новостей и предотвращения импорта дублей)
+SourceId - идентификатор источника данных (PK из т. Source)';
+
+
+--
+-- TOC entry 205 (class 1259 OID 32984)
+-- Name: ParsedNews_@ParsedNews_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public."ParsedNews" ALTER COLUMN "@ParsedNews" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public."ParsedNews_@ParsedNews_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 202 (class 1259 OID 32967)
+-- Name: ProcessedNews; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."ProcessedNews" (
+    "@ProcessedNews" integer NOT NULL,
+    "Header" text,
+    "Text" text NOT NULL,
+    "SourceId" integer NOT NULL,
+    "CreateTime" timestamp with time zone NOT NULL,
+    "Sentiment" boolean NOT NULL,
+    "Companies" text[]
+);
+
+
+ALTER TABLE public."ProcessedNews" OWNER TO postgres;
+
+--
+-- TOC entry 3046 (class 0 OID 0)
+-- Dependencies: 202
+-- Name: TABLE "ProcessedNews"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public."ProcessedNews" IS 'Таблица обработанных новостей
+@ProcessedNews - ПК
+Header - заголовок новости
+Text - текст новости
+SourceId - идентификатор источника (внешн. ключ)
+CreateTime - время создания
+Sentiment - настроение новости (True - положительное, False - отрицательное)
+Companies - список компаний, найденных в тексте';
+
+
+--
+-- TOC entry 204 (class 1259 OID 32982)
+-- Name: ProcessedNews_@ProcessedNews_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public."ProcessedNews" ALTER COLUMN "@ProcessedNews" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public."ProcessedNews_@ProcessedNews_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 200 (class 1259 OID 32930)
+-- Name: Source; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Source" (
+    "@Source" integer NOT NULL,
+    "Name" text NOT NULL,
+    "Link" text NOT NULL
+);
+
+
+ALTER TABLE public."Source" OWNER TO postgres;
+
+--
+-- TOC entry 3047 (class 0 OID 0)
+-- Dependencies: 200
+-- Name: TABLE "Source"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public."Source" IS 'Таблица, содержащая источники новостей для парсинга';
+
+
+--
+-- TOC entry 203 (class 1259 OID 32980)
+-- Name: Source_@Source_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public."Source" ALTER COLUMN "@Source" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public."Source_@Source_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 206 (class 1259 OID 32991)
+-- Name: User; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."User" (
+    "@User" integer NOT NULL,
+    "Login" text NOT NULL,
+    "Password" text NOT NULL,
+    "IsAdmin" boolean NOT NULL
+);
+
+
+ALTER TABLE public."User" OWNER TO postgres;
+
+--
+-- TOC entry 3048 (class 0 OID 0)
+-- Dependencies: 206
+-- Name: TABLE "User"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public."User" IS 'Таблица пользователя с полями
+@User - идентификатор пользователя
+Login - логин пользователя
+Password - пароль пользователя
+IsAdmin - является ли пользователь админом';
+
+
+--
+-- TOC entry 208 (class 1259 OID 33033)
+-- Name: UserNewsFeed; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."UserNewsFeed" (
+    "@UserNewsFeed" integer NOT NULL,
+    "SourceIds" integer[],
+    "Sentiment" boolean,
+    "UserId" integer
+);
+
+
+ALTER TABLE public."UserNewsFeed" OWNER TO postgres;
+
+--
+-- TOC entry 3049 (class 0 OID 0)
+-- Dependencies: 208
+-- Name: TABLE "UserNewsFeed"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public."UserNewsFeed" IS 'Таблица настроек пользовательской новостной ленты
+@UserNewsFeed - идентификатор настроек
+UserId - идентификатор пользователя
+SourceIds - массив идентификаторов источников, по которым нужно фильтровать новости
+Sentiment - настроение новости (True - положительная, False - отрицательная)';
+
+
+--
+-- TOC entry 207 (class 1259 OID 33031)
+-- Name: UserNewsFeed_@UserNewsFeed_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public."UserNewsFeed" ALTER COLUMN "@UserNewsFeed" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public."UserNewsFeed_@UserNewsFeed_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 211 (class 1259 OID 33086)
+-- Name: User_@User_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public."User" ALTER COLUMN "@User" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public."User_@User_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 2904 (class 2606 OID 33057)
+-- Name: Company Company_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Company"
+    ADD CONSTRAINT "Company_pkey" PRIMARY KEY ("@Company");
+
+
+--
+-- TOC entry 2890 (class 2606 OID 32945)
+-- Name: ParsedNews ParsedNews_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ParsedNews"
+    ADD CONSTRAINT "ParsedNews_pkey" PRIMARY KEY ("@ParsedNews");
+
+
+--
+-- TOC entry 2894 (class 2606 OID 32974)
+-- Name: ProcessedNews ProcessedNews_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProcessedNews"
+    ADD CONSTRAINT "ProcessedNews_pkey" PRIMARY KEY ("@ProcessedNews");
+
+
+--
+-- TOC entry 2888 (class 2606 OID 32937)
+-- Name: Source Source_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Source"
+    ADD CONSTRAINT "Source_pkey" PRIMARY KEY ("@Source");
+
+
+--
+-- TOC entry 2898 (class 2606 OID 33000)
+-- Name: User UniqueLogin; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."User"
+    ADD CONSTRAINT "UniqueLogin" UNIQUE ("Login");
+
+
+--
+-- TOC entry 3050 (class 0 OID 0)
+-- Dependencies: 2898
+-- Name: CONSTRAINT "UniqueLogin" ON "User"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON CONSTRAINT "UniqueLogin" ON public."User" IS 'Ограничение на уникальность логина';
+
+
+--
+-- TOC entry 2902 (class 2606 OID 33040)
+-- Name: UserNewsFeed UserNewsFeed_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserNewsFeed"
+    ADD CONSTRAINT "UserNewsFeed_pkey" PRIMARY KEY ("@UserNewsFeed");
+
+
+--
+-- TOC entry 2900 (class 2606 OID 32998)
+-- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."User"
+    ADD CONSTRAINT "User_pkey" PRIMARY KEY ("@User");
+
+
+--
+-- TOC entry 2896 (class 2606 OID 33069)
+-- Name: ProcessedNews unique header, source_id; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProcessedNews"
+    ADD CONSTRAINT "unique header, source_id" UNIQUE ("Header", "SourceId");
+
+
+--
+-- TOC entry 3051 (class 0 OID 0)
+-- Dependencies: 2896
+-- Name: CONSTRAINT "unique header, source_id" ON "ProcessedNews"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON CONSTRAINT "unique header, source_id" ON public."ProcessedNews" IS 'Ограничение гарантирует уникальность по ключам заголовок, источник';
+
+
+--
+-- TOC entry 2892 (class 2606 OID 33061)
+-- Name: ParsedNews unique header,source; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ParsedNews"
+    ADD CONSTRAINT "unique header,source" UNIQUE ("Header", "SourceId");
+
+
+--
+-- TOC entry 3052 (class 0 OID 0)
+-- Dependencies: 2892
+-- Name: CONSTRAINT "unique header,source" ON "ParsedNews"; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON CONSTRAINT "unique header,source" ON public."ParsedNews" IS 'Ограничение обеспечивает уникальность статей по заголовку для одного источника';
+
+
+--
+-- TOC entry 2905 (class 2606 OID 32946)
+-- Name: ParsedNews SourceId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ParsedNews"
+    ADD CONSTRAINT "SourceId" FOREIGN KEY ("SourceId") REFERENCES public."Source"("@Source") ON UPDATE CASCADE ON DELETE CASCADE NOT VALID;
+
+
+--
+-- TOC entry 2906 (class 2606 OID 32975)
+-- Name: ProcessedNews SourceId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."ProcessedNews"
+    ADD CONSTRAINT "SourceId" FOREIGN KEY ("SourceId") REFERENCES public."Source"("@Source");
+
+
+--
+-- TOC entry 2907 (class 2606 OID 33041)
+-- Name: UserNewsFeed UserId; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserNewsFeed"
+    ADD CONSTRAINT "UserId" FOREIGN KEY ("UserId") REFERENCES public."User"("@User") NOT VALID;
+
+
+-- Completed on 2023-11-26 20:52:35
+
+--
+-- PostgreSQL database dump complete
+--
+

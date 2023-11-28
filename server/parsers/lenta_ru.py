@@ -90,3 +90,6 @@ def lenta_parser():
 
     articles = []
     return articles
+
+
+print(get_data())
